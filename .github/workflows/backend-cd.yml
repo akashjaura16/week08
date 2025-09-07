@@ -56,7 +56,8 @@ jobs:
           kubectl apply -n $NS -f k8s/backend/deploy-product.yaml
           kubectl apply -n $NS -f k8s/backend/deploy-order.yaml
 
+
       - name: Wait for rollouts
         run: |
-          kubectl -n $NS rollout status deploy/product-service-w08e1
-          kubectl -n $NS rollout status deploy/order-service-w08e1
+            kubectl -n $NS rollout status deploy/product-service-w08e1
+            kubectl -n $NS rollout status deploy/order-service-w08e1
