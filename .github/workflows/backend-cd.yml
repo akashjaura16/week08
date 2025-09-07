@@ -34,25 +34,23 @@ jobs:
 
       - name: Debug — show repo tree
         run: |
-          echo "Deploying ref: ${{ github.event.inputs.deploy_ref }}"
-          echo "--- root ---"; ls -la
+          echo "Ref: $GITHUB_REF  SHA: $GITHUB_SHA"
           echo "--- k8s ---"; ls -la k8s || true
-          echo "--- k8s/backend ---"; ls -la k8s/backend || true
+          echo "--- k8s/manifests-backend ---"; ls -la k8s/manifests-backend || true
 
       - name: Replace backend images
         run: |
           set -euo pipefail
-          sed -i "s#IMAGE_PRODUCT_PLACEHOLDER#${{ secrets.ACR_LOGIN_SERVER }}/product_service:${{ env.IMAGE_TAG }}#g" k8s/backend/deploy-product.yaml
-          sed -i "s#IMAGE_ORDER_PLACEHOLDER#${{ secrets.ACR_LOGIN_SERVER }}/order_service:${{ env.IMAGE_TAG }}#g"   k8s/backend/deploy-order.yaml
+          test -f k8s/manifests-backend/deploy-product.yaml
+          test -f k8s/manifests-backend/deploy-order.yaml
+          sed -i "s#IMAGE_PRODUCT_PLACEHOLDER#${{ secrets.ACR_LOGIN_SERVER }}/product_service:${{ env.IMAGE_TAG }}#g" k8s/manifests-backend/deploy-product.yaml
+          sed -i "s#IMAGE_ORDER_PLACEHOLDER#${{ secrets.ACR_LOGIN_SERVER }}/order_service:${{ env.IMAGE_TAG }}#g"   k8s/manifests-backend/deploy-order.yaml
 
       - name: Apply backend manifests
         run: |
-          kubectl apply -n $NS -f k8s/backend/deploy-product.yaml
-          kubectl apply -n $NS -f k8s/backend/deploy-order.yaml
-
-
-
-      - name: Wait for rollouts
-        run: |
-            kubectl -n $NS rollout status deploy/product-service-w08e1
-            kubectl -n $NS rollout status deploy/order-service-w08e1
+          kubectl apply -n $NS -f k8s/secrets.yaml
+          kubectl apply -n $NS -f k8s/configmaps.yaml
+          kubectl apply -n $NS -f k8s/product-db.yaml
+          kubectl apply -n $NS -f k8s/order-db.yaml
+          kubectl apply -n $NS -f k8s/manifests-backend/deploy-product.yaml
+          kubectl apply -n $NS -f k8s/manifests-backend/deploy-order.yaml
