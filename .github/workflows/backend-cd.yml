@@ -24,24 +24,29 @@ jobs:
           resource-group: ${{ secrets.AKS_RESOURCE_GROUP }}
           cluster-name: ${{ secrets.AKS_CLUSTER_NAME }}
 
-      - name: Update image references
+      - name: Debug — show tree
         run: |
-          sed -i "s#IMAGE_PRODUCT_PLACEHOLDER#${{ secrets.ACR_LOGIN_SERVER }}/product_service:${{ env.IMAGE_TAG }}#g" k8s/product-service.yaml
-          sed -i "s#IMAGE_ORDER_PLACEHOLDER#${{ secrets.ACR_LOGIN_SERVER }}/order_service:${{ env.IMAGE_TAG }}#g" k8s/order-service.yaml
+          echo "Branch: $GITHUB_REF"
+          ls -la
+          echo "--- k8s ---"; ls -la k8s || true
+          echo "--- k8s/backend ---"; ls -la k8s/backend || true
 
-      - name: Deploy Config + Secrets + DBs
+      - name: Replace backend images
         run: |
-          kubectl apply -n ecommerce -f k8s/secrets.yaml
-          kubectl apply -n ecommerce -f k8s/configmaps.yaml
-          kubectl apply -n ecommerce -f k8s/product-db.yaml
-          kubectl apply -n ecommerce -f k8s/order-db.yaml
+          set -euo pipefail
+          sed -i "s#IMAGE_PRODUCT_PLACEHOLDER#${{ secrets.ACR_LOGIN_SERVER }}/product_service:${{ env.IMAGE_TAG }}#g" k8s/backend/deploy-product.yaml
+          sed -i "s#IMAGE_ORDER_PLACEHOLDER#${{ secrets.ACR_LOGIN_SERVER }}/order_service:${{ env.IMAGE_TAG }}#g"   k8s/backend/deploy-order.yaml
 
-      - name: Deploy Backend Services
+      - name: Apply backend manifests
         run: |
-          kubectl apply -n ecommerce -f k8s/product-service.yaml
-          kubectl apply -n ecommerce -f k8s/order-service.yaml
+          kubectl apply -n $NS -f k8s/secrets.yaml
+          kubectl apply -n $NS -f k8s/configmaps.yaml
+          kubectl apply -n $NS -f k8s/product-db.yaml
+          kubectl apply -n $NS -f k8s/order-db.yaml
+          kubectl apply -n $NS -f k8s/backend/deploy-product.yaml
+          kubectl apply -n $NS -f k8s/backend/deploy-order.yaml
 
-      - name: Verify rollout
+      - name: Wait for rollouts
         run: |
-          kubectl rollout status deploy/product-service-w08e1 -n ecommerce
-          kubectl rollout status deploy/order-service-w08e1 -n ecommerce
+          kubectl -n $NS rollout status deploy/product-service-w08e1
+          kubectl -n $NS rollout status deploy/order-service-w08e1
