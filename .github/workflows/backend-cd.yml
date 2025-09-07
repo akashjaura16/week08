@@ -42,19 +42,14 @@ jobs:
       - name: Replace backend images
         run: |
           set -euo pipefail
-          test -f k8s/backend/deploy-product.yaml
-          test -f k8s/backend/deploy-order.yaml
           sed -i "s#IMAGE_PRODUCT_PLACEHOLDER#${{ secrets.ACR_LOGIN_SERVER }}/product_service:${{ env.IMAGE_TAG }}#g" k8s/backend/deploy-product.yaml
           sed -i "s#IMAGE_ORDER_PLACEHOLDER#${{ secrets.ACR_LOGIN_SERVER }}/order_service:${{ env.IMAGE_TAG }}#g"   k8s/backend/deploy-order.yaml
 
       - name: Apply backend manifests
         run: |
-          kubectl apply -n $NS -f k8s/secrets.yaml
-          kubectl apply -n $NS -f k8s/configmaps.yaml
-          kubectl apply -n $NS -f k8s/product-db.yaml
-          kubectl apply -n $NS -f k8s/order-db.yaml
           kubectl apply -n $NS -f k8s/backend/deploy-product.yaml
           kubectl apply -n $NS -f k8s/backend/deploy-order.yaml
+
 
 
       - name: Wait for rollouts
