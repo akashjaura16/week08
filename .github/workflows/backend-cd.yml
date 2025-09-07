@@ -2,6 +2,11 @@ name: Backend CD - Deploy Backend Services to AKS
 
 on:
   workflow_dispatch:
+    inputs:
+      deploy_ref:
+        description: "Branch or tag to deploy"
+        required: true
+        default: main
 
 env:
   NS: ecommerce
@@ -11,7 +16,10 @@ jobs:
   deploy_backend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.deploy_ref }}
+          fetch-depth: 0
 
       - name: Azure Login
         uses: azure/login@v2
@@ -24,16 +32,18 @@ jobs:
           resource-group: ${{ secrets.AKS_RESOURCE_GROUP }}
           cluster-name: ${{ secrets.AKS_CLUSTER_NAME }}
 
-      - name: Debug — show tree
+      - name: Debug — show repo tree
         run: |
-          echo "Branch: $GITHUB_REF"
-          ls -la
+          echo "Deploying ref: ${{ github.event.inputs.deploy_ref }}"
+          echo "--- root ---"; ls -la
           echo "--- k8s ---"; ls -la k8s || true
           echo "--- k8s/backend ---"; ls -la k8s/backend || true
 
       - name: Replace backend images
         run: |
           set -euo pipefail
+          test -f k8s/backend/deploy-product.yaml
+          test -f k8s/backend/deploy-order.yaml
           sed -i "s#IMAGE_PRODUCT_PLACEHOLDER#${{ secrets.ACR_LOGIN_SERVER }}/product_service:${{ env.IMAGE_TAG }}#g" k8s/backend/deploy-product.yaml
           sed -i "s#IMAGE_ORDER_PLACEHOLDER#${{ secrets.ACR_LOGIN_SERVER }}/order_service:${{ env.IMAGE_TAG }}#g"   k8s/backend/deploy-order.yaml
 
