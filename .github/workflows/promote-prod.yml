@@ -9,7 +9,7 @@ on:
 jobs:
   gate:
     runs-on: ubuntu-latest
-    environment: production  # create this Environment in repo Settings
+    environment: Production  # create this Environment in repo Settings
     steps:
       - name: Approved – simulate promote
         run: |
